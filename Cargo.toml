@@ -1,0 +1,28 @@
+[package]
+name = "gudgeon"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aneesh Krishna Parthasarathy <aneeshkrishnaparthasarathy@gmail.com>"]
+description = "Autonomous Surface Vessel Navigation, COLREGS Collision Avoidance, NMEA-0183/2000 Sensor Fusion, and Dual-Pod Rudder Controller in LOLCODE and Rust"
+license = "ISC"
+
+[dependencies]
+rhai = { version = "1.27.0", features = ["sync"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+byteorder = "1.5"
+
+[lib]
+name = "gudgeon"
+path = "src/lib.rs"
+crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "gudgeon"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

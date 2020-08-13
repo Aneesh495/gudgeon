@@ -1,0 +1,13 @@
+/target
+**/*.rs.bk
+Cargo.lock
+*.swp
+*.pyc
+__pycache__/
+.DS_Store
+*.dylib
+*.so
+*.a
+*.o
+bin/
+build/
