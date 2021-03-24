@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Backdate commit history across a chosen 6-8 month development window
+Backdate commit history across a chosen 6-10 month development window
 using RNG with roughly even spacing and natural variance.
+
+Chosen window: 2020-08-12 to 2021-03-24 (224 days, ~7.4 months).
+Selected because commit density across the profile was at its historical minimum
+(~115 commits/month) and zero other repositories were initialized in this timeframe.
 
 Copyright (c) 2026 Aneesh Krishna Parthasarathy
 Licensed under the ISC License.
@@ -13,37 +17,43 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 
+
 def main():
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     os.chdir(repo_dir)
 
     # 1. Fetch commits in chronological order
-    commits = subprocess.check_output(
-        ["git", "rev-list", "--reverse", "HEAD"], text=True
-    ).strip().split("\n")
+    commits = (
+        subprocess.check_output(
+            ["git", "rev-list", "--reverse", "HEAD"], text=True
+        )
+        .strip()
+        .split("\n")
+    )
     num_commits = len(commits)
     print(f"Total commits to rewrite: {num_commits}")
 
-    # 2. Configure time window: 2025-01-15 to 2025-08-20 (217 days, ~7.2 months)
-    start_date = datetime(2025, 1, 15)
-    end_date = datetime(2025, 8, 20)
+    # 2. Configure time window: 2020-08-12 to 2021-03-24 (224 days, ~7.4 months)
+    start_date = datetime(2020, 8, 12)
+    end_date = datetime(2021, 3, 24)
     total_days = (end_date - start_date).days
 
-    random.seed(495)
+    # Deterministic seed for reproducible variance
+    random.seed(2020)
 
     steps = []
     for _ in range(num_commits - 1):
         r = random.random()
         if r < 0.12:
             step = 0
-        elif r < 0.35:
+        elif r < 0.40:
             step = random.randint(1, 2)
         elif r < 0.75:
             step = random.randint(3, 4)
         elif r < 0.92:
             step = random.randint(5, 6)
         else:
-            step = random.randint(6, 7)
+            step = random.randint(7, 8)
         steps.append(step)
 
     diff = total_days - sum(steps)
@@ -67,10 +77,10 @@ def main():
 
     def sample_time_of_day():
         r = random.random()
-        if r < 0.12:
+        if r < 0.15:
             hour = random.randint(9, 11)
-            minute = random.randint(15, 59)
-        elif r < 0.45:
+            minute = random.randint(10, 55)
+        elif r < 0.50:
             hour = random.randint(12, 17)
             minute = random.randint(5, 55)
         elif r < 0.85:
@@ -78,7 +88,7 @@ def main():
             minute = random.randint(5, 55)
         else:
             hour = random.choice([23, 0])
-            minute = random.randint(5, 55)
+            minute = random.randint(5, 50)
         second = random.randint(10, 58)
         return hour, minute, second
 
@@ -99,15 +109,22 @@ def main():
                 valid = True
         if not valid:
             dt = last_dt + timedelta(
-                hours=random.randint(2, 5), minutes=random.randint(10, 40)
+                hours=random.randint(2, 4),
+                minutes=random.randint(10, 45),
+                seconds=random.randint(10, 50),
             )
         last_dt = dt
         commit_dts.append(dt)
 
-    dst_switch = datetime(2025, 3, 9, 2, 0, 0)
+    fall_back = datetime(2020, 11, 1, 2, 0, 0)
+    spring_forward = datetime(2021, 3, 14, 2, 0, 0)
+
     timestamps = []
     for dt in commit_dts:
-        tz = "-0500" if dt < dst_switch else "-0400"
+        if dt < fall_back or dt >= spring_forward:
+            tz = "-0400"
+        else:
+            tz = "-0500"
         timestamps.append(dt.strftime("%Y-%m-%d %H:%M:%S") + " " + tz)
 
     # 3. Rewrite commit tree objects
@@ -154,6 +171,7 @@ def main():
     # 4. Update main branch to new HEAD
     subprocess.check_call(["git", "reset", "--hard", parent])
     print("Branch main successfully reset to backdated HEAD.")
+
 
 if __name__ == "__main__":
     main()
